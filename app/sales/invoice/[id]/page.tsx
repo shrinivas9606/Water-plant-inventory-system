@@ -178,7 +178,7 @@ export default function InvoicePage() {
         <div className="flex gap-2">
           <button
             onClick={downloadPDF}
-            className="bg-green-600 text-white px-4 py-2 rounded"
+            className="bg-green-600 text-white px-4 py-2 rounded print:hidden"
           >
             Download PDF
           </button>
