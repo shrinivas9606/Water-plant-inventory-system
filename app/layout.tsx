@@ -1,6 +1,6 @@
-
 import './globals.css'
 import { RoleProvider } from '@/context/RoleContext'
+import AuthGuard from '@/components/AuthGuard'
 
 export const metadata = {
   title: 'Water Bottle Plant System',
@@ -16,10 +16,11 @@ export default function RootLayout({
     <html lang="en" className="light">
       <body className="bg-gray-100 text-gray-900">
         <RoleProvider>
-          {children}
+          <AuthGuard>
+            {children}
+          </AuthGuard>
         </RoleProvider>
       </body>
     </html>
   )
 }
-
