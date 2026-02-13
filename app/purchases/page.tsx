@@ -37,7 +37,23 @@ export default function PurchasesPage() {
     if (!amount) return
 
     const payAmount = Number(amount)
+
+    if (payAmount <= 0) {
+      alert('Invalid payment amount')
+      return
+    }
+
     const newPaid = purchase.amount_paid + payAmount
+
+    // Prevent overpayment
+    if (newPaid > purchase.total_amount) {
+      alert(
+        `Payment exceeds total. Remaining balance: ₹${
+          purchase.total_amount - purchase.amount_paid
+        }`
+      )
+      return
+    }
 
     let status = 'unpaid'
     if (newPaid === purchase.total_amount) status = 'paid'
@@ -110,12 +126,18 @@ export default function PurchasesPage() {
                   {p.status}
                 </td>
                 <td className="p-2 border">
-                  <button
-                    onClick={() => handlePay(p)}
-                    className="bg-blue-600 text-white px-3 py-1 rounded"
-                  >
-                    Pay
-                  </button>
+                  {p.status === 'paid' ? (
+                    <span className="bg-green-600 text-white px-3 py-1 rounded">
+                      Completed
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => handlePay(p)}
+                      className="bg-blue-600 text-white px-3 py-1 rounded"
+                    >
+                      Pay
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
