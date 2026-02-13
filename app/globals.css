@@ -51,3 +51,8 @@ td {
   color: #111827 !important;
   border-color: #d1d5db !important;
 }
+
+
+input, select, textarea {
+  color: #111827;
+}

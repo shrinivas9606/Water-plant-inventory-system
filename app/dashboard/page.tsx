@@ -17,10 +17,12 @@ export default function Dashboard() {
   })
 
   const [lowStock, setLowStock] = useState<any[]>([])
+  const [duePayments, setDuePayments] = useState<any[]>([])
 
   useEffect(() => {
     const checkUserAndLoadData = async () => {
       const { data: userData } = await supabase.auth.getUser()
+
       // const role = await getUserRole()
 
       // if (!role) {
@@ -63,6 +65,20 @@ export default function Dashboard() {
         )
         setLowStock(filtered)
       }
+
+      // Due payments
+      const { data: duePurchases } = await supabase
+        .from('purchases')
+        .select(`
+          id,
+          total_amount,
+          amount_paid,
+          due_date,
+          vendors(name)
+        `)
+        .neq('status', 'paid')
+
+        if (duePurchases) setDuePayments(duePurchases)
 
     }
 
@@ -148,6 +164,40 @@ export default function Dashboard() {
             </table>
           </div>
         )}
+
+        {duePayments.length > 0 && (
+          <div className="mt-8 bg-yellow-50 border border-yellow-300 p-4 rounded">
+            <h2 className="text-lg font-bold text-yellow-800 mb-3">
+              Payment Due Alerts
+            </h2>
+
+            <table className="w-full border">
+              <thead>
+                <tr>
+                  <th className="p-2 border text-left">Vendor</th>
+                  <th className="p-2 border text-left">Balance</th>
+                  <th className="p-2 border text-left">Due Date</th>
+                </tr>
+              </thead>
+              <tbody>
+                {duePayments.map((p) => (
+                  <tr key={p.id}>
+                    <td className="p-2 border">
+                      {p.vendors?.name}
+                    </td>
+                    <td className="p-2 border font-bold text-red-600">
+                      ₹{p.total_amount - p.amount_paid}
+                    </td>
+                    <td className="p-2 border">
+                      {p.due_date}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+
       </div>
     </AppLayout>
   )
