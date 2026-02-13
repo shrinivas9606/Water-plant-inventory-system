@@ -40,6 +40,7 @@ export default function VendorsPage() {
               <th className="p-2 border text-left">Name</th>
               <th className="p-2 border text-left">Phone</th>
               <th className="p-2 border text-left">Address</th>
+              <th className="p-2 border text-left">Actions</th>
             </tr>
           </thead>
           <tbody>
@@ -48,6 +49,14 @@ export default function VendorsPage() {
                 <td className="p-2 border">{v.name}</td>
                 <td className="p-2 border">{v.phone}</td>
                 <td className="p-2 border">{v.address}</td>
+                <td className="p-2 border">
+                  <a
+                    href={`/vendors/edit/${v.id}`}
+                    className="bg-blue-600 text-white px-3 py-1 rounded"
+                  >
+                    Edit
+                  </a>
+                </td>
               </tr>
             ))}
           </tbody>
