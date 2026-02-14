@@ -55,21 +55,57 @@ export default function AddPurchasePage() {
       (m) => m.id === materialId
     )
 
-    const { error } = await supabase.from('purchases').insert({
-      vendor_id: vendorId,
-      material_id: materialId,
-      quantity,
-      unit: selectedMaterial?.unit,
-      rate,
-      total_amount: totalAmount,
-      purchase_date: purchaseDate,
-      due_date: dueDate,
-      amount_paid: 0,
-      status: 'unpaid',
-    })
+    if (!selectedMaterial) {
+      alert('Material not found')
+      return
+    }
 
-    if (error) {
-      alert(error.message)
+    // 1. Insert purchase
+    const { error: purchaseError } = await supabase
+      .from('purchases')
+      .insert({
+        vendor_id: vendorId,
+        material_id: materialId,
+        quantity,
+        unit: selectedMaterial.unit,
+        rate,
+        total_amount: totalAmount,
+        purchase_date: purchaseDate,
+        due_date: dueDate,
+        amount_paid: 0,
+        status: 'unpaid',
+      })
+
+    if (purchaseError) {
+      alert(purchaseError.message)
+      return
+    }
+
+    // 2. Get current stock
+    const { data: materialData, error: materialError } =
+      await supabase
+        .from('raw_materials')
+        .select('current_stock')
+        .eq('id', materialId)
+        .single()
+
+    if (materialError || !materialData) {
+      alert('Error updating stock')
+      return
+    }
+
+    const newStock = materialData.current_stock + quantity
+
+    // 3. Update stock
+    const { error: stockError } = await supabase
+      .from('raw_materials')
+      .update({
+        current_stock: newStock,
+      })
+      .eq('id', materialId)
+
+    if (stockError) {
+      alert(stockError.message)
     } else {
       router.push('/purchases')
     }
