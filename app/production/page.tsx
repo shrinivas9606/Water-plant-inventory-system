@@ -20,7 +20,7 @@ export default function ProductionPage() {
   const [fromDate, setFromDate] = useState('')
   const [toDate, setToDate] = useState('')
 
-  const fetchOrders = async () => {
+  const fetchOrders = async (from?: string, to?: string) => {
     let query = supabase
       .from('production_orders')
       .select(`
@@ -32,14 +32,12 @@ export default function ProductionPage() {
       `)
       .order('created_at', { ascending: false })
 
-    // Apply filters
-    if (fromDate) {
-      query = query.gte('created_at', fromDate)
+    if (from) {
+      query = query.gte('created_at', from)
     }
 
-    if (toDate) {
-      // add end-of-day time for proper range
-      query = query.lte('created_at', toDate + 'T23:59:59')
+    if (to) {
+      query = query.lte('created_at', to + 'T23:59:59')
     }
 
     const { data, error } = await query
@@ -54,7 +52,7 @@ export default function ProductionPage() {
   }, [])
 
   const handleFilter = () => {
-    fetchOrders()
+    fetchOrders(fromDate, toDate)
   }
 
   const handleClear = () => {
