@@ -50,6 +50,7 @@ export default function ProductsPage() {
                 <th className="p-2 border text-left">Name</th>
                 <th className="p-2 border text-left">SKU</th>
                 <th className="p-2 border text-left">Unit</th>
+                <th className="p-2 border text-left">Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -58,6 +59,14 @@ export default function ProductsPage() {
                   <td className="p-2 border">{prod.name}</td>
                   <td className="p-2 border">{prod.sku}</td>
                   <td className="p-2 border">{prod.unit}</td>
+                  <td className="p-2 border">
+                    <a
+                      href={`/products/${prod.id}/materials`}
+                      className="bg-purple-600 text-white px-3 py-1 rounded"
+                    >
+                      Set Materials
+                    </a>
+                  </td>
                 </tr>
               ))}
             </tbody>
