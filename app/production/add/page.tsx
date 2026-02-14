@@ -28,63 +28,98 @@ export default function AddProductionPage() {
   const handleSubmit = async (e: any) => {
     e.preventDefault()
 
-    // Step 1: Create production order
-    const { data: order, error } = await supabase
-        .from('production_orders')
-        .insert({
+    // 1. Get BOM materials
+    const { data: bomItems, error: bomError } = await supabase
+      .from('product_materials')
+      .select(`
+        material_id,
+        quantity_per_unit,
+        raw_materials (
+          id,
+          current_stock
+        )
+      `)
+      .eq('product_id', productId)
+
+    if (bomError || !bomItems) {
+      alert('BOM not found for this product')
+      return
+    }
+
+    // 2. Check stock availability
+    for (const item of bomItems) {
+      const material = item.raw_materials[0]
+      const requiredQty =
+        item.quantity_per_unit * quantity     
+
+      if (material.current_stock < requiredQty) {
+        alert(
+          `Not enough stock for material. Required: ${requiredQty}`
+        )
+        return
+      }
+    }
+
+    // 3. Deduct raw materials
+    for (const item of bomItems) {
+      const material = item.raw_materials[0]
+      const requiredQty =
+        item.quantity_per_unit * quantity
+
+      const newStock =
+        material.current_stock - requiredQty
+
+      await supabase
+        .from('raw_materials')
+        .update({
+          current_stock: newStock,
+        })
+        .eq('id', material.id)
+    }
+
+    // 4. Insert production order
+    const { error: prodError } = await supabase
+      .from('production_orders')
+      .insert({
         product_id: productId,
         quantity_produced: quantity,
         status: 'completed',
-        })
-        .select()
-        .single()
+      })
 
-    if (error) {
-        alert(error.message)
-        return
+    if (prodError) {
+      alert(prodError.message)
+      return
     }
 
-    // Step 2: Get first warehouse
-    const { data: warehouses } = await supabase
-        .from('warehouses')
-        .select('*')
-        .limit(1)
+    // 5. Update product stock
+    const { data: stockData } = await supabase
+      .from('product_stock')
+      .select('*')
+      .eq('product_id', productId)
+      .single()
 
-    if (!warehouses || warehouses.length === 0) {
-        alert('No warehouse found')
-        return
-    }
-
-    const warehouseId = warehouses[0].id
-
-    // Step 3: Check existing stock
-    const { data: stock } = await supabase
-        .from('product_stock')
-        .select('*')
-        .eq('product_id', productId)
-        .eq('warehouse_id', warehouseId)
-        .single()
-
-    if (stock) {
-        // Step 4A: Update existing stock
-        await supabase
+    if (stockData) {
+      // Update existing stock
+      await supabase
         .from('product_stock')
         .update({
-            quantity: stock.quantity + quantity,
-            updated_at: new Date().toISOString(),
+          quantity:
+            stockData.quantity + quantity,
+          updated_at: new Date().toISOString(),
         })
-        .eq('id', stock.id)
+        .eq('id', stockData.id)
     } else {
-        // Step 4B: Create new stock record
-        await supabase.from('product_stock').insert({
-        product_id: productId,
-        warehouse_id: warehouseId,
-        quantity: quantity,
+      // Create new stock record
+      await supabase
+        .from('product_stock')
+        .insert({
+          product_id: productId,
+          quantity: quantity,
         })
     }
 
     router.push('/production')
-    }
+  }
 
   return (
     <AppLayout>
