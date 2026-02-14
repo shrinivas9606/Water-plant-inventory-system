@@ -28,46 +28,61 @@ export default function AddProductionPage() {
   const handleSubmit = async (e: any) => {
     e.preventDefault()
 
-    // 1. Get BOM materials
-    const { data: bomItems, error: bomError } = await supabase
-      .from('product_materials')
-      .select(`
-        material_id,
-        quantity_per_unit,
-        raw_materials (
-          id,
-          current_stock
-        )
-      `)
-      .eq('product_id', productId)
-
-    if (bomError || !bomItems) {
-      alert('BOM not found for this product')
+    if (!productId || quantity <= 0) {
+      alert('Please select product and quantity')
       return
     }
 
-    // 2. Check stock availability
+    // 1. Get BOM items
+    const { data: bomItems, error: bomError } = await supabase
+      .from('product_materials')
+      .select('material_id, quantity_per_unit')
+      .eq('product_id', productId)
+
+    if (bomError || !bomItems || bomItems.length === 0) {
+      alert('No materials configured for this product')
+      return
+    }
+
+    // 2. Check stock
     for (const item of bomItems) {
-      const material = item.raw_materials[0]
+      const { data: material, error } = await supabase
+        .from('raw_materials')
+        .select('id, current_stock, name')
+        .eq('id', item.material_id)
+        .maybeSingle()
+
+      if (error || !material) {
+        alert('Material not found')
+        return
+      }
+
       const requiredQty =
-        item.quantity_per_unit * quantity     
+        item.quantity_per_unit * quantity
 
       if (material.current_stock < requiredQty) {
-        alert(
-          `Not enough stock for material. Required: ${requiredQty}`
-        )
+        alert(`Not enough stock for ${material.name}`)
         return
       }
     }
 
-    // 3. Deduct raw materials
+    // 3. Deduct materials
     for (const item of bomItems) {
-      const material = item.raw_materials[0]
+      const { data: material } = await supabase
+        .from('raw_materials')
+        .select('id, current_stock')
+        .eq('id', item.material_id)
+        .single()
+
+      if (!material) {
+        alert('Material not found')
+        return
+      }
+
       const requiredQty =
         item.quantity_per_unit * quantity
 
-      const newStock =
-        material.current_stock - requiredQty
+      const newStock = material.current_stock - requiredQty
 
       await supabase
         .from('raw_materials')
@@ -91,25 +106,22 @@ export default function AddProductionPage() {
       return
     }
 
-    // 5. Update product stock
+    // 5. Update product stock (safe version)
     const { data: stockData } = await supabase
       .from('product_stock')
       .select('*')
       .eq('product_id', productId)
-      .single()
+      .maybeSingle()
 
     if (stockData) {
-      // Update existing stock
       await supabase
         .from('product_stock')
         .update({
-          quantity:
-            stockData.quantity + quantity,
+          quantity: stockData.quantity + quantity,
           updated_at: new Date().toISOString(),
         })
         .eq('id', stockData.id)
     } else {
-      // Create new stock record
       await supabase
         .from('product_stock')
         .insert({
